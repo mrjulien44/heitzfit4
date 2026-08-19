@@ -46,13 +46,16 @@ async def async_setup_entry(
     _LOGGER.info(coordinator)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    for platform in PLATFORMS:
-        # await hass.async_add_executor_job(  KO TypeError: 'coroutine' object is not callable)
-        hass.async_add_job(
-            hass.config_entries.async_forward_entry_setup(entry, platform)
-        )
-        _LOGGER.info("Forwarding entry setup for %s", platform)
+    #for platform in PLATFORMS:
+    #    # await hass.async_add_executor_job(  KO TypeError: 'coroutine' object is not callable)
+    #    hass.async_add_job(
+    #        hass.config_entries.async_forward_entry_setup(entry, platform)
+    #    )
+    #    _LOGGER.info("Forwarding entry setup for %s", platform)
 
+    # Envoie toutes les plateformes d'un coup de manière moderne
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _LOGGER.info("Forwarding entry setups for %s", PLATFORMS)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
