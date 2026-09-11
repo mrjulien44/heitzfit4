@@ -69,10 +69,34 @@ content: >-
         {%- if activities.booked %}
           {%- set booking = "success" -%}
         {%- endif -%}
-          <ha-alert title="{{as_timestamp(activities.start) | timestamp_custom('%R') + '&nbsp;&nbsp;' + activities.activity}}" alert-type="{{booking}}">{{'&nbsp;&nbsp;&nbsp;@&nbsp;' + activities.room + '&nbsp;&nbsp;&nbsp;&nbsp;' + places}}</ha-alert>
+          <ha-alert title="{{as_timestamp(activities.start) | timestamp_custom('%R') + '&nbsp;&nbsp;' + activities.activity}}" alert-type="{{booking}}">
+            {{'&nbsp;&nbsp;&nbsp;@&nbsp;' + activities.room + '&nbsp;&nbsp;&nbsp;&nbsp;' + places}}
+            
+            {# --- BOUTON DE RÉSERVATION (VIA SCRIPT AUTOMATISÉ) --- #}
+            {%- if not activities.booked and (activities.placesTaken | int < activities.placesMax | int) %}
+              <div style="text-align: right; margin-top: -22px; position: relative; z-index: 2;">
+                <a href="/api/services/script/heitzfit_reserver_action?activity_id={{ activities.id }}" 
+                   style="background-color: #2196F3; color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.85em; display: inline-block;">
+                   ➕ Réserver
+                </a>
+              </div>
+            {%- endif -%}
+            
+            {# --- BOUTON D'ANNULATION (VIA SCRIPT AUTOMATISÉ) --- #}
+            {%- if activities.booked %}
+              <div style="text-align: right; margin-top: -22px; position: relative; z-index: 2;">
+                <a href="/api/services/script/heitzfit_annuler_action?activity_id={{ activities.id }}" 
+                   style="background-color: #f44336; color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.85em; display: inline-block;">
+                   ➖ Annuler
+                </a>
+              </div>
+            {%- endif -%}
+            
+          </ha-alert>
       {%- endif -%}
     {%- endfor -%}
   {%- endfor -%}
+
 ```
 ![heitzfit4 planning detail](doc/planning.png)
 
@@ -92,6 +116,45 @@ Sample for booking :
 {%- endfor -%}
 ```
 ![heitzfit4 booking detail](doc/bookings.png)
+
+## script pour pouvoir réserver et annuler
+```
+heitzfit_reserver_action:
+  alias: "Heitzfit - Réserver et Actualiser"
+  mode: parallel
+  fields:
+    activity_id:
+      description: "L'identifiant de l'activité à réserver"
+      example: "104434280"
+  sequence:
+    - action: rest_command.heitzfit_book
+      data:
+        activity_id: "{{ activity_id }}"
+    - delay: "00:00:01" # Léger délai pour laisser à l'API Heitzfit le temps de traiter la demande
+    - action: homeassistant.update_entity
+      target:
+        entity_id: sensor.heitzfit4_planning
+    - action: browser_mod.window_reload # <--- AJOUT ICI : Force la page web à s'actualiser d'elle-même
+      data: {}
+ 
+heitzfit_annuler_action:
+  alias: "Heitzfit - Annuler et Actualiser"
+  mode: parallel
+  fields:
+    activity_id:
+      description: "L'identifiant de l'activité à annuler"
+      example: "104434280"
+  sequence:
+    - action: rest_command.heitzfit_book_delete
+      data:
+        activity_id: "{{ activity_id }}"
+    - delay: "00:00:01"
+    - action: homeassistant.update_entity
+      target:
+        entity_id: sensor.heitzfit4_planning
+    - action: browser_mod.window_reload # <--- AJOUT ICI : Force la page web à s'actualiser d'elle-même
+      data: {}
+```
 
 ## Calendar
 
