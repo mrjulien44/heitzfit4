@@ -10,7 +10,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/mrjulien44/heitzfit4/issues",
   "quality_scale": "bronze",
-  "requirements": [],
   "version": "0.9.20",
   "loggers": ["custom_components.huawei_health"],
   "requirements": ["aiohttp>=3.9.0"]
