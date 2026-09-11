@@ -3,5 +3,14 @@
   "country": "FR",
   "content_in_root": false,
   "homeassistant": "2026.3.0",
-  "render_readme": true
+  "render_readme": true,
+  "topics": [
+    "heitzfit",
+    "sport",
+    "planning",
+    "home-assistant"
+  ],
+  "license": "MIT",
+  "filename": "heitzfit4",
+  "brand": "heitzfit4"
 }
