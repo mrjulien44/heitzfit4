@@ -20,12 +20,11 @@ class Heitzfit4TokenSensor(CoordinatorEntity, SensorEntity):  # type: ignore[mis
 
     def __init__(self, coordinator):
         super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_token"
-        self._attr_name = "Token"
-        self._attr_has_entity_name = True
+        self._attr_unique_id = "heitzfit_token"
+        self._attr_name = "heitzfit_token"
+        self._attr_has_entity_name = False
         self._attr_icon = "mdi:key-variant"
         self._attr_entity_category = EntityCategory.CONFIG
-        self._attr_entity_registry_enabled_default = False
         self._attr_native_value = getattr(getattr(coordinator, "api", None), "token", None)
 
     def _handle_coordinator_update(self) -> None:
