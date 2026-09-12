@@ -40,6 +40,28 @@ class Heitzfit4API:
                 result = await response.json()
                 self.token = result["token"]
                 self.clientId = result["clientId"]
+
+    async def async_book_activity(self, activity_id: str):
+        """Book an activity identified by the planning activity id."""
+        activity_id = str(activity_id)
+        url = f"https://app.heitzfit.com/c/{self.club}/ws/api/planning/book?idPlanning={activity_id}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers={"Authorization": f"Bearer {self.token}"}) as response:
+                try:
+                    return await response.json()
+                except Exception:
+                    return {"status": response.status, "text": await response.text()}
+
+    async def async_delete_activity(self, activity_id: str):
+        """Delete/cancel an activity identified by the planning activity id."""
+        activity_id = str(activity_id)
+        url = f"https://app.heitzfit.com/c/{self.club}/ws/api/planning/book?idPlanning={activity_id}"
+        async with aiohttp.ClientSession() as session:
+            async with session.delete(url, headers={"Authorization": f"Bearer {self.token}"}) as response:
+                try:
+                    return await response.json()
+                except Exception:
+                    return {"status": response.status, "text": await response.text()}
     
     async def async_get_booking(self):
         async with aiohttp.ClientSession() as session:

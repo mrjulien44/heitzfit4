@@ -3,8 +3,12 @@ import asyncio
 from datetime import timedelta
 import logging
 
-from homeassistant.core import HomeAssistant
+import voluptuous as vol
+
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .api import Heitzfit4API
 from .const import DOMAIN, PLATFORMS
@@ -12,6 +16,65 @@ from .const import DOMAIN, PLATFORMS
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor", "calendar"]
+
+SERVICE_SCHEMA = vol.Schema({vol.Required("activity_id"): cv.string})
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register Home Assistant services exposed by this integration."""
+
+    async def _book_activity(call: ServiceCall) -> None:
+        activity_id = str(call.data["activity_id"])
+        await _dispatch_activity_action(hass, activity_id, "book")
+
+    async def _delete_activity(call: ServiceCall) -> None:
+        activity_id = str(call.data["activity_id"])
+        await _dispatch_activity_action(hass, activity_id, "delete")
+
+    # Register integration domain services.
+    if not hass.services.has_service(DOMAIN, "book_activity"):
+        hass.services.async_register(DOMAIN, "book_activity", _book_activity, schema=SERVICE_SCHEMA)
+    if not hass.services.has_service(DOMAIN, "delete_activity"):
+        hass.services.async_register(DOMAIN, "delete_activity", _delete_activity, schema=SERVICE_SCHEMA)
+
+    # Register compatibility aliases for the service domain used by the card.
+    if not hass.services.has_service("heitzfit", "book_activity"):
+        hass.services.async_register("heitzfit", "book_activity", _book_activity, schema=SERVICE_SCHEMA)
+    if not hass.services.has_service("heitzfit", "delete_activity"):
+        hass.services.async_register("heitzfit", "delete_activity", _delete_activity, schema=SERVICE_SCHEMA)
+
+    # Alias names requested by the custom Lovelace card style.
+    if not hass.services.has_service("heitzfit", "heitzfit_book"):
+        hass.services.async_register("heitzfit", "heitzfit_book", _book_activity, schema=SERVICE_SCHEMA)
+    if not hass.services.has_service("heitzfit", "heitzfit_book_delete"):
+        hass.services.async_register("heitzfit", "heitzfit_book_delete", _delete_activity, schema=SERVICE_SCHEMA)
+
+    # Optional alias names matching the requested card action names.
+    if not hass.services.has_service(DOMAIN, "heitzfit_book"):
+        hass.services.async_register(DOMAIN, "heitzfit_book", _book_activity, schema=SERVICE_SCHEMA)
+    if not hass.services.has_service(DOMAIN, "heitzfit_book_delete"):
+        hass.services.async_register(DOMAIN, "heitzfit_book_delete", _delete_activity, schema=SERVICE_SCHEMA)
+
+    return True
+
+
+async def _dispatch_activity_action(hass: HomeAssistant, activity_id: str, action: str) -> None:
+    """Route a booking/cancellation request to the first loaded coordinator API."""
+    entries = hass.data.get(DOMAIN, {})
+    if not entries:
+        raise HomeAssistantError("No heitzfit4 config entry is loaded. Cannot dispatch booking service.")
+
+    coordinator = next(iter(entries.values()))
+    api = getattr(coordinator, "api", None)
+    if api is None:
+        raise HomeAssistantError("Heitzfit4 API client is not available on the loaded coordinator.")
+
+    if action == "book":
+        await api.async_book_activity(activity_id)
+    elif action == "delete":
+        await api.async_delete_activity(activity_id)
+    else:
+        raise HomeAssistantError(f"Unsupported heitzfit4 activity action: {action}")
 
 
 async def async_migrate_entry(hass, config_entry: ConfigEntry) -> bool:
