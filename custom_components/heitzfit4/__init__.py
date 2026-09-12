@@ -21,7 +21,7 @@ SERVICE_SCHEMA = vol.Schema({vol.Required("activity_id"): cv.string})
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Register Home Assistant services exposed by this integration."""
+    """Register Home Assistant services exposed by the integration."""
 
     async def _book_activity(call: ServiceCall) -> None:
         activity_id = str(call.data["activity_id"])
@@ -31,29 +31,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         activity_id = str(call.data["activity_id"])
         await _dispatch_activity_action(hass, activity_id, "delete")
 
-    # Register integration domain services.
     if not hass.services.has_service(DOMAIN, "book_activity"):
         hass.services.async_register(DOMAIN, "book_activity", _book_activity, schema=SERVICE_SCHEMA)
     if not hass.services.has_service(DOMAIN, "delete_activity"):
         hass.services.async_register(DOMAIN, "delete_activity", _delete_activity, schema=SERVICE_SCHEMA)
-
-    # Register compatibility aliases for the service domain used by the card.
-    if not hass.services.has_service("heitzfit", "book_activity"):
-        hass.services.async_register("heitzfit", "book_activity", _book_activity, schema=SERVICE_SCHEMA)
-    if not hass.services.has_service("heitzfit", "delete_activity"):
-        hass.services.async_register("heitzfit", "delete_activity", _delete_activity, schema=SERVICE_SCHEMA)
-
-    # Alias names requested by the custom Lovelace card style.
-    if not hass.services.has_service("heitzfit", "heitzfit_book"):
-        hass.services.async_register("heitzfit", "heitzfit_book", _book_activity, schema=SERVICE_SCHEMA)
-    if not hass.services.has_service("heitzfit", "heitzfit_book_delete"):
-        hass.services.async_register("heitzfit", "heitzfit_book_delete", _delete_activity, schema=SERVICE_SCHEMA)
-
-    # Optional alias names matching the requested card action names.
-    if not hass.services.has_service(DOMAIN, "heitzfit_book"):
-        hass.services.async_register(DOMAIN, "heitzfit_book", _book_activity, schema=SERVICE_SCHEMA)
-    if not hass.services.has_service(DOMAIN, "heitzfit_book_delete"):
-        hass.services.async_register(DOMAIN, "heitzfit_book_delete", _delete_activity, schema=SERVICE_SCHEMA)
 
     return True
 
