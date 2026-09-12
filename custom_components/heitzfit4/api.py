@@ -42,24 +42,53 @@ class Heitzfit4API:
                 self.clientId = result["clientId"]
 
     async def async_book_activity(self, activity_id: str):
-        """Book an activity identified by the planning activity id."""
-        activity_id = str(activity_id)
-        url = f"https://app.heitzfit.com/c/{self.club}/ws/api/planning/book?idPlanning={activity_id}"
+        """Reserve an activity using the same REST payload shape as the card example."""
+        return await self._async_activity_request("POST", activity_id)
+
+    async def async_delete_activity(self, activity_id: str):
+        """Cancel an activity through the dedicated Heitzfit cancel route."""
+        url = f"https://app.heitzfit.com/c/{self.club}/ws/api/planning/book/{activity_id}/cancel"
+        headers = {
+            "Authorization": f"{self.token}",
+            "Content-Type": "application/json",
+        }
+
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers={"Authorization": f"Bearer {self.token}"}) as response:
+            async with session.post(url, headers=headers) as response:
                 try:
-                    return await response.json()
+                    text = await response.text()
+                    if text:
+                        try:
+                            return json.loads(text)
+                        except Exception:
+                            return {"status": response.status, "text": text}
+                    return {"status": response.status}
                 except Exception:
                     return {"status": response.status, "text": await response.text()}
 
-    async def async_delete_activity(self, activity_id: str):
-        """Delete/cancel an activity identified by the planning activity id."""
-        activity_id = str(activity_id)
-        url = f"https://app.heitzfit.com/c/{self.club}/ws/api/planning/book?idPlanning={activity_id}"
+    async def _async_activity_request(self, method: str, activity_id: str):
+        """Call the Heitzfit booking endpoint with the REST payload expected by the API."""
+        url = f"https://app.heitzfit.com/c/{self.club}/ws/api/planning/book"
+        headers = {
+            "Authorization": f"{self.token}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "id": int(str(activity_id)),
+            "places": 1,
+            "joinQueueList": False,
+        }
+
         async with aiohttp.ClientSession() as session:
-            async with session.delete(url, headers={"Authorization": f"Bearer {self.token}"}) as response:
+            async with session.post(url, headers=headers, json=payload) as response:
                 try:
-                    return await response.json()
+                    text = await response.text()
+                    if text:
+                        try:
+                            return json.loads(text)
+                        except Exception:
+                            return {"status": response.status, "text": text}
+                    return {"status": response.status}
                 except Exception:
                     return {"status": response.status, "text": await response.text()}
     
