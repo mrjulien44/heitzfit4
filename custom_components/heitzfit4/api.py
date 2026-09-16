@@ -136,8 +136,10 @@ def add_booked_flag(planning_data, booking_data):
         for activity in activities:
             if activity["id"] in booked_activities:
                 activity["booked"] = True
+                activity["id_booking"] = booking.get(activity["id"], {}).get("id", None)
             else:
                 activity["booked"] = False
+                activity["id_booking"] = ""
 
     return planning_data
 
